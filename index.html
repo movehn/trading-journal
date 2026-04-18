@@ -412,6 +412,28 @@ canvas { display:block; width:100%; }
 .cms-item-label { font-family:var(--font-d); font-size:10px; letter-spacing:1px; color:var(--dim); text-transform:uppercase; margin-bottom:4px; }
 .cms-item-value { font-family:var(--font-d); font-size:18px; font-weight:800; }
 
+/* direction toggle */
+.dir-toggle { display:flex; border:1px solid var(--border); border-radius:2px; overflow:hidden; height:42px; }
+.dir-btn {
+  flex:1; background:none; border:none;
+  font-family:var(--font-d); font-size:14px; font-weight:800; letter-spacing:2px;
+  cursor:pointer; transition:all 0.15s; color:var(--dim); text-transform:uppercase;
+}
+.dir-btn.dir-long.active  { background:rgba(34,197,94,0.15); color:var(--pos); border-right:1px solid rgba(34,197,94,0.3); }
+.dir-btn.dir-short.active { background:rgba(239,68,68,0.15); color:var(--neg); }
+.dir-btn:not(.active):hover { background:var(--surface2); color:var(--text2); }
+
+/* calendar view toggle */
+.cal-view-toggle { display:flex; background:var(--bg); border:1px solid var(--border); border-radius:2px; overflow:hidden; }
+.cal-view-btn {
+  background:none; border:none; color:var(--dim);
+  font-family:var(--font-d); font-size:12px; font-weight:700; letter-spacing:2px;
+  padding:6px 14px; cursor:pointer; text-transform:uppercase; transition:all 0.15s;
+}
+.cal-view-btn.active { background:var(--orange); color:#fff; }
+/* 주간 뷰 날짜 셀 — 세로로 더 크게 */
+.cal-day-week { aspect-ratio:unset !important; min-height:120px; }
+
 /* trade checkbox select */
 .cb-row { display:flex; align-items:center; gap:8px; cursor:pointer; }
 .cb-row input[type=checkbox] { width:16px; height:16px; accent-color:var(--orange); cursor:pointer; }
@@ -610,7 +632,11 @@ canvas { display:block; width:100%; }
           <div class="form-row r3">
             <div class="field"><label>종목 / 티커</label><input type="text" id="f-ticker" placeholder="BTC/USDT"></div>
             <div class="field"><label>방향</label>
-              <select id="f-dir"><option value="long">LONG ▲</option><option value="short">SHORT ▼</option></select>
+              <div class="dir-toggle">
+                <button class="dir-btn dir-long active" onclick="setDir('long',this)">LONG</button>
+                <button class="dir-btn dir-short" onclick="setDir('short',this)">SHORT</button>
+              </div>
+              <input type="hidden" id="f-dir" value="long">
             </div>
             <div class="field"><label>통화</label>
               <select id="f-currency"><option value="USD">$ USD — 해외/선물</option><option value="KRW">₩ KRW — 국내주식</option></select>
@@ -682,9 +708,13 @@ canvas { display:block; width:100%; }
     <div class="cal-stats-row" id="cal-stats-row"></div>
     <div class="cal-header">
       <div class="cal-nav">
-        <button class="cal-arrow" onclick="prevMonth()">◀</button>
+        <button class="cal-arrow" onclick="prevCal()">◀</button>
         <div class="cal-month" id="cal-title" onclick="openCalPicker(this)" title="클릭하여 이동" style="cursor:pointer;user-select:none"></div>
-        <button class="cal-arrow" onclick="nextMonth()">▶</button>
+        <button class="cal-arrow" onclick="nextCal()">▶</button>
+      </div>
+      <div class="cal-view-toggle">
+        <button class="cal-view-btn active" data-view="monthly" onclick="setCalView('monthly',this)">월간</button>
+        <button class="cal-view-btn" data-view="weekly" onclick="setCalView('weekly',this)">주간</button>
       </div>
     </div>
     <div class="cal-grid" id="cal-grid"></div>
@@ -928,6 +958,8 @@ let categories = [];   // {id, name, order}
 let notes = [];        // {id, catId, title, content, createdAt, updatedAt, manualOrder}
 
 let cy = new Date().getFullYear(), cm = new Date().getMonth();
+let calView = 'monthly'; // 'monthly' | 'weekly'
+let calWeekDate = new Date(); // 주간 뷰의 기준 날짜
 let qtyMode = 'qty';
 let listFilter = 'all';
 let pendingScreenshot = null;
@@ -1100,6 +1132,9 @@ function addTrade(){
   save(); updateAll();
   ['f-ticker','f-entry','f-exit','f-qty','f-signal','f-good','f-bad','f-next'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-entry-date').value=document.getElementById('f-exit-date').value=todayStr;
+  document.getElementById('f-dir').value='long';
+  document.querySelectorAll('.dir-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.dir-btn.dir-long').classList.add('active');
   document.getElementById('pnl-box').textContent=document.getElementById('rate-box').textContent='—';
   document.getElementById('pnl-box').style.color=document.getElementById('rate-box').style.color='var(--dim)';
   removeScreenshot();
@@ -1138,10 +1173,33 @@ function updateHeader(){
 // ═══════════════════════════════════════════
 //  CALENDAR
 // ═══════════════════════════════════════════
-function prevMonth(){cm--;if(cm<0){cm=11;cy--;}renderCalendar();}
-function nextMonth(){cm++;if(cm>11){cm=0;cy++;}renderCalendar();}
+function setDir(dir, btn){
+  document.getElementById('f-dir').value = dir;
+  document.querySelectorAll('.dir-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function setCalView(v, btn){
+  calView = v;
+  document.querySelectorAll('.cal-view-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===v));
+  renderCalendar();
+}
+
+function prevCal(){
+  if(calView==='weekly'){ calWeekDate.setDate(calWeekDate.getDate()-7); }
+  else { cm--;if(cm<0){cm=11;cy--;} }
+  renderCalendar();
+}
+function nextCal(){
+  if(calView==='weekly'){ calWeekDate.setDate(calWeekDate.getDate()+7); }
+  else { cm++;if(cm>11){cm=0;cy++;} }
+  renderCalendar();
+}
+function prevMonth(){ prevCal(); }
+function nextMonth(){ nextCal(); }
 
 function renderCalendar(){
+  if(calView==='weekly'){ renderWeekCalendar(); return; }
   const months=['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
   document.getElementById('cal-title').innerHTML=`<em>${cy}</em>  ·  ${months[cm]}`;
   const monthStr=`${cy}-${String(cm+1).padStart(2,'0')}`;
@@ -1172,10 +1230,9 @@ function renderCalendar(){
   }
   document.getElementById('cal-grid').innerHTML=html;
 
-  // ── cal stats row (cumulative all-time + this month win/loss days)
+  // ── cal stats row
   const allKrwTotal = trades.filter(t=>(t.currency||'KRW')==='KRW').reduce((s,t)=>s+t.pnl,0);
   const allUsdTotal = trades.filter(t=>t.currency==='USD').reduce((s,t)=>s+t.pnl,0);
-  // win/loss days this month
   const dayTotals = {};
   trades.filter(t=>t.exitDate.startsWith(monthStr)).forEach(t=>{
     if(!dayTotals[t.exitDate])dayTotals[t.exitDate]=0;
@@ -1196,35 +1253,68 @@ function renderCalendar(){
         <div class="cal-stat-item"><span class="cal-stat-label">총 매매</span><span class="cal-stat-val" style="color:var(--orange)">${trades.length}건</span></div>
       </div>`;
   }
-  const monthTrades=trades.filter(t=>t.exitDate.startsWith(monthStr));
-  const mKrw=monthTrades.filter(t=>(t.currency||'KRW')==='KRW');
-  const mUsd=monthTrades.filter(t=>t.currency==='USD');
-  const mkTotal=mKrw.reduce((s,t)=>s+t.pnl,0);
-  const muTotal=mUsd.reduce((s,t)=>s+t.pnl,0);
-  const mkWr=mKrw.length?Math.round(mKrw.filter(t=>t.pnl>0).length/mKrw.length*100):0;
-  const muWr=mUsd.length?Math.round(mUsd.filter(t=>t.pnl>0).length/mUsd.length*100):0;
+}
 
-  // ── 캘린더 헤더 수익일/손실일 뱃지 업데이트
-  const calNav=document.querySelector('.cal-header .cal-nav');
-  let winBadge=document.getElementById('cal-win-badge');
-  let lossBadge=document.getElementById('cal-loss-badge');
-  if(!winBadge){
-    winBadge=document.createElement('div');
-    winBadge.id='cal-win-badge';
-    winBadge.style.cssText='display:flex;align-items:center;gap:6px;margin-left:20px;';
-    lossBadge=document.createElement('div');
-    lossBadge.id='cal-loss-badge';
-    lossBadge.style.cssText='display:flex;align-items:center;gap:6px;';
-    const badgeWrap=document.createElement('div');
-    badgeWrap.id='cal-header-badges';
-    badgeWrap.style.cssText='display:flex;align-items:center;gap:14px;';
-    badgeWrap.appendChild(winBadge);
-    badgeWrap.appendChild(lossBadge);
-    calNav.parentElement.appendChild(badgeWrap);
+function renderWeekCalendar(){
+  // 해당 주의 월요일 계산
+  const ref=new Date(calWeekDate);
+  const dow=ref.getDay()||7;
+  ref.setDate(ref.getDate()-dow+1);
+  const weekStart=new Date(ref);
+  const weekEnd=new Date(ref); weekEnd.setDate(weekEnd.getDate()+6);
+  const fmt=d=>`${d.getMonth()+1}/${d.getDate()}`;
+  document.getElementById('cal-title').innerHTML=
+    `<em>${weekStart.getFullYear()}</em>  ·  ${fmt(weekStart)} — ${fmt(weekEnd)}`;
+
+  const krwMap={},usdMap={},cntMap={};
+  trades.forEach(t=>{
+    const d=t.exitDate,cur=t.currency||'KRW';
+    if(!cntMap[d])cntMap[d]=0;cntMap[d]++;
+    if(cur==='KRW'){if(!krwMap[d])krwMap[d]=0;krwMap[d]+=t.pnl;}
+    else{if(!usdMap[d])usdMap[d]=0;usdMap[d]+=t.pnl;}
+  });
+  const today=new Date().toISOString().slice(0,10);
+  const dows=['MON','TUE','WED','THU','FRI','SAT','SUN'];
+  let html=dows.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  for(let i=0;i<7;i++){
+    const cur=new Date(weekStart);cur.setDate(cur.getDate()+i);
+    const ds=cur.toISOString().slice(0,10);
+    const kp=krwMap[ds],up=usdMap[ds],dc=cntMap[ds]||0;
+    const anyPos=(kp!=null&&kp>=0)||(up!=null&&up>=0);
+    const anyNeg=(kp!=null&&kp<0)||(up!=null&&up<0);
+    let cls='cal-day cal-day-week'+(ds===today?' today':'')+(anyPos?' has-pos':'')+(anyNeg&&!anyPos?' has-neg':'');
+    let inner='';
+    if(kp!=null){const s=kp>=0?'+':'';inner+=`<div class="cal-day-pnl ${kp>=0?'bloom-pos':'bloom-neg'}" style="font-size:clamp(14px,2vw,26px)">₩${s}${Math.abs(kp)>=1e4?Math.round(Math.abs(kp)).toLocaleString():Math.abs(kp).toFixed(0)}</div>`;}
+    if(up!=null){const s=up>=0?'+':'';inner+=`<div class="cal-day-pnl ${up>=0?'bloom-pos':'bloom-neg'}" style="font-size:clamp(14px,2vw,26px)">$${s}${Math.abs(up).toFixed(2)}</div>`;}
+    if(dc>0)inner+=`<div class="cal-day-cnt">${dc}건 — 클릭하여 상세</div>`;
+    html+=`<div class="${cls}" onclick="showDay('${ds}')"><div class="cal-num" style="font-size:13px;font-weight:700;color:${ds===today?'var(--orange)':'var(--dim)'}">${cur.getMonth()+1}/${cur.getDate()}</div>${inner||'<div style="flex:1"></div>'}</div>`;
   }
-  winBadge.innerHTML=`<span style="font-family:var(--font-d);font-size:13px;letter-spacing:1px;color:var(--dim);text-transform:uppercase">이번 달</span>
-    <span style="font-family:var(--font-d);font-size:20px;font-weight:800;color:var(--pos);text-shadow:0 0 10px rgba(34,197,94,0.5)">▲ ${winDays}일</span>`;
-  lossBadge.innerHTML=`<span style="font-family:var(--font-d);font-size:20px;font-weight:800;color:var(--neg);text-shadow:0 0 10px rgba(239,68,68,0.5)">▼ ${lossDays}일</span>`;
+  document.getElementById('cal-grid').innerHTML=html;
+
+  // stats row — 해당 주 집계
+  const weekDayTotals={};
+  for(let i=0;i<7;i++){
+    const cur=new Date(weekStart);cur.setDate(cur.getDate()+i);
+    const ds=cur.toISOString().slice(0,10);
+    const dayPnl=trades.filter(t=>t.exitDate===ds).reduce((s,t)=>s+t.pnl,0);
+    if(trades.some(t=>t.exitDate===ds)) weekDayTotals[ds]=dayPnl;
+  }
+  const wWin=Object.values(weekDayTotals).filter(v=>v>0).length;
+  const wLoss=Object.values(weekDayTotals).filter(v=>v<=0).length;
+  const wKrw=trades.filter(t=>{const cur=new Date(weekStart);const end=new Date(weekEnd);const d=new Date(t.exitDate);return d>=cur&&d<=end&&(t.currency||'KRW')==='KRW';}).reduce((s,t)=>s+t.pnl,0);
+  const wUsd=trades.filter(t=>{const cur=new Date(weekStart);const end=new Date(weekEnd);const d=new Date(t.exitDate);return d>=cur&&d<=end&&t.currency==='USD';}).reduce((s,t)=>s+t.pnl,0);
+  const statsEl=document.getElementById('cal-stats-row');
+  if(statsEl){
+    statsEl.innerHTML=`
+      <div class="cal-stat-item"><span class="cal-stat-label">이번 주</span>
+        <span class="cal-stat-val bloom-pos">▲ ${wWin}일</span>
+        <span class="cal-stat-val bloom-neg">▼ ${wLoss}일</span>
+      </div>
+      <div style="display:flex;gap:20px">
+        ${wKrw!==0?`<div class="cal-stat-item"><span class="cal-stat-label">₩ 주간</span><span class="cal-stat-val ${wKrw>=0?'bloom-pos':'bloom-neg'}">${fmtAbs(wKrw,'KRW')}</span></div>`:''}
+        ${wUsd!==0?`<div class="cal-stat-item"><span class="cal-stat-label">$ 주간</span><span class="cal-stat-val ${wUsd>=0?'bloom-pos':'bloom-neg'}">${fmtAbs(wUsd,'USD')}</span></div>`:''}
+      </div>`;
+  }
 }
 
 function showDay(ds){
