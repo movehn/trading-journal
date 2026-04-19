@@ -1168,9 +1168,10 @@ canvas { display: block; width: 100%; }
   font-weight: 500;
   color: var(--text);
   margin-bottom: 3px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: visible;
+  word-break: break-word;
+  line-height: 1.4;
 }
 .note-item-meta {
   font-size: 13px;
@@ -1826,7 +1827,7 @@ canvas { display: block; width: 100%; }
   .nav-btn[onclick*="record"]::after   { content: 'REC'; font-weight: 700; letter-spacing: 1px; }
   .nav-btn[onclick*="calendar"]::after { content: 'CAL'; font-weight: 700; letter-spacing: 1px; }
   .nav-btn[onclick*="analysis"]::after { content: 'P&L'; font-weight: 700; letter-spacing: 1px; }
-  .nav-btn[onclick*="study"]::after    { content: 'DOC'; font-weight: 700; letter-spacing: 1px; }
+  .nav-btn[onclick*="study"]::after    { content: 'NOTE'; font-weight: 700; letter-spacing: 1px; }
 
   .main { padding: 12px 10px 66px; }
 
@@ -1933,7 +1934,7 @@ canvas { display: block; width: 100%; }
   <button class="nav-btn active" onclick="switchTab('record',this)">기록</button>
   <button class="nav-btn" onclick="switchTab('calendar',this)">캘린더</button>
   <button class="nav-btn" onclick="switchTab('analysis',this)">수익 분석</button>
-  <button class="nav-btn" onclick="switchTab('study',this)">스터디</button>
+  <button class="nav-btn" onclick="switchTab('study',this)">노트</button>
 </nav>
 
 <div class="main">
@@ -2204,6 +2205,7 @@ canvas { display: block; width: 100%; }
                   <button class="sort-menu-item" onclick="setSort('drag',this)">⠿ 직접 정렬</button>
                 </div>
               </div>
+              <button class="btn-sm" onclick="newNote()" title="새 노트 만들기">+ NEW</button>
             </div>
           </div>
           <div class="note-list-items" id="note-list-items">
@@ -2215,10 +2217,9 @@ canvas { display: block; width: 100%; }
             <button class="btn-sm" onclick="exportSelectedMD()">⬇MD</button>
             <button class="btn-del" onclick="deleteSelectedNotes()">삭제</button>
           </div>
-          <div style="padding:12px;border-top:1px solid var(--border)">
+          <div style="padding:10px 12px;border-top:1px solid var(--border)">
             <div style="display:flex;gap:8px;margin-bottom:8px">
-              <button class="btn-sm" style="flex:1" onclick="newNote()">+ 새 노트</button>
-              <button class="btn-sm" onclick="uploadMD()" title="MD 파일 클릭으로 불러오기">📂 불러오기</button>
+              <button class="btn-sm" style="flex:1" onclick="uploadMD()" title="MD 파일 클릭으로 불러오기">📂 MD 불러오기</button>
               <input type="file" id="md-upload-input" accept=".md,.txt" multiple style="display:none" onchange="handleMDUpload(this)">
             </div>
             <div id="md-drag-target"
