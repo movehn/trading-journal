@@ -14,15 +14,15 @@
 ═══════════════════════════════════════════ */
 :root {
   /* core palette */
-  --bg:        #212322;
-  --surface:   #292b29;
-  --surface2:  #2e302e;
-  --surface3:  #333533;
+  --bg:        #151515;
+  --surface:   #1c1c1c;
+  --surface2:  #222222;
+  --surface3:  #282828;
 
   /* borders */
-  --border:    #333533;
-  --border2:   #3d3f3d;
-  --border3:   #4a4d4a;
+  --border:    #2a2a2a;
+  --border2:   #333333;
+  --border3:   #404040;
 
   /* accent — desaturated violet */
   --accent:    #a78bfa;
@@ -257,8 +257,10 @@ body::before { display: none !important; }
 .main {
   max-width: 1600px;
   margin: 0 auto;
-  padding: 64px 20px 40px;
+  padding: 32px 20px 40px;
 }
+/* 기록 탭만 상단 여백 2배 */
+#tab-record { padding-top: 32px; }
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
 
