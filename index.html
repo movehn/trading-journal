@@ -14,15 +14,15 @@
 ═══════════════════════════════════════════ */
 :root {
   /* core palette */
-  --bg:        #000000;
-  --surface:   #0a0a0a;
-  --surface2:  #0f0f0f;
-  --surface3:  #141414;
+  --bg:        #212322;
+  --surface:   #292b29;
+  --surface2:  #2e302e;
+  --surface3:  #333533;
 
-  /* borders — pure gray thin lines */
-  --border:    #1a1a1a;
-  --border2:   #262626;
-  --border3:   #333333;
+  /* borders */
+  --border:    #333533;
+  --border2:   #3d3f3d;
+  --border3:   #4a4d4a;
 
   /* accent — desaturated violet */
   --accent:    #a78bfa;
@@ -37,10 +37,10 @@
   --neg-d:     rgba(248,113,113,0.08);
 
   /* text hierarchy */
-  --text:      #e5e5e5;
-  --text2:     #999999;
-  --text3:     #666666;
-  --dim:       #404040;
+  --text:      #e3e5e4;
+  --text2:     #b8bcba;
+  --text3:     #888c8a;
+  --dim:       #556057;
 
   /* legacy mapping */
   --orange:     var(--accent);
@@ -257,7 +257,7 @@ body::before { display: none !important; }
 .main {
   max-width: 1600px;
   margin: 0 auto;
-  padding: 32px 20px 40px;
+  padding: 64px 20px 40px;
 }
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
@@ -1495,6 +1495,30 @@ canvas { display: block; width: 100%; }
   text-transform: uppercase;
 }
 
+/* period nav bar (일별/주별 화살표 네비) */
+.period-nav-bar {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 16px;
+  padding: 8px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  width: fit-content;
+}
+.period-nav-label {
+  background: none; border: none;
+  font-family: var(--font-m);
+  font-size: 13px; font-weight: 600;
+  letter-spacing: 1px; color: var(--text);
+  cursor: pointer; padding: 0 12px;
+  min-width: 140px; text-align: center;
+  transition: color 0.12s;
+}
+.period-nav-label:hover { color: var(--accent); }
+
+/* 매매 기록 행 클릭 커서 */
+.trade-row-clickable { cursor: pointer; }
+.trade-row-clickable:hover td { background: var(--accent-d) !important; }
+
 /* period tabs */
 .period-tabs {
   display: flex; gap: 0;
@@ -2071,6 +2095,13 @@ canvas { display: block; width: 100%; }
 
     <!-- 일별 -->
     <div class="period-panel active" id="period-daily">
+      <!-- 날짜 네비 -->
+      <div class="period-nav-bar" id="daily-nav-bar">
+        <button class="cal-arrow" onclick="navDaily(-1)">◀</button>
+        <button class="period-nav-label" id="daily-nav-label" onclick="openDailyPicker(this)">전체</button>
+        <button class="cal-arrow" onclick="navDaily(1)">▶</button>
+        <button class="btn-sm" onclick="clearDailyFilter()" id="daily-clear-btn" style="display:none">✕ 전체</button>
+      </div>
       <div class="stats-dual" id="stats-dual"></div>
       <div class="chart-dual">
         <div class="chart-card">
@@ -2121,6 +2152,13 @@ canvas { display: block; width: 100%; }
 
     <!-- 주별 -->
     <div class="period-panel" id="period-weekly">
+      <!-- 주 네비 -->
+      <div class="period-nav-bar" id="weekly-nav-bar">
+        <button class="cal-arrow" onclick="navWeekly(-1)">◀</button>
+        <button class="period-nav-label" id="weekly-nav-label" onclick="openWeeklyPicker(this)">전체</button>
+        <button class="cal-arrow" onclick="navWeekly(1)">▶</button>
+        <button class="btn-sm" onclick="clearWeeklyFilter()" id="weekly-clear-btn" style="display:none">✕ 전체</button>
+      </div>
       <div class="stats-dual" id="stats-dual-weekly" style="margin-bottom:18px"></div>
       <div class="chart-dual">
         <div class="chart-card">
@@ -2137,12 +2175,10 @@ canvas { display: block; width: 100%; }
 
     <!-- 월별 -->
     <div class="period-panel" id="period-monthly">
-      <div class="filter-row">
-        <div class="filter-row-label">월 선택</div>
-        <button class="picker-trigger" id="monthly-picker-btn" onclick="openPicker('month','monthly',this)">
-          <span class="picker-trigger-val" id="monthly-filter-display">전체 기간</span>
-          <span class="picker-trigger-arrow">▾</span>
-        </button>
+      <div class="period-nav-bar" id="monthly-nav-bar">
+        <button class="cal-arrow" onclick="navMonthly(-1)">◀</button>
+        <button class="period-nav-label" id="monthly-nav-label" onclick="openPicker('month','monthly',this)">이번 달</button>
+        <button class="cal-arrow" onclick="navMonthly(1)">▶</button>
       </div>
       <div class="stats-dual" id="stats-dual-monthly" style="margin-bottom:18px"></div>
       <div class="chart-dual">
@@ -2160,12 +2196,10 @@ canvas { display: block; width: 100%; }
 
     <!-- 년도별 -->
     <div class="period-panel" id="period-yearly">
-      <div class="filter-row">
-        <div class="filter-row-label">연도 선택</div>
-        <button class="picker-trigger" id="yearly-picker-btn" onclick="openPicker('year','yearly',this)">
-          <span class="picker-trigger-val" id="yearly-filter-display">전체 기간</span>
-          <span class="picker-trigger-arrow">▾</span>
-        </button>
+      <div class="period-nav-bar" id="yearly-nav-bar">
+        <button class="cal-arrow" onclick="navYearly(-1)">◀</button>
+        <button class="period-nav-label" id="yearly-nav-label" onclick="openPicker('year','yearly',this)">올해</button>
+        <button class="cal-arrow" onclick="navYearly(1)">▶</button>
       </div>
       <div class="stats-dual" id="stats-dual-yearly" style="margin-bottom:18px"></div>
       <div class="chart-dual">
@@ -2658,6 +2692,42 @@ function renderWeekCalendar(){
   }
 }
 
+function openTradeDetail(e, id){
+  // 수정/삭제 버튼 클릭은 버블링 차단됐으므로 여기선 항상 상세 오픈
+  const t=trades.find(t=>t.id===id); if(!t)return;
+  const cur=t.currency||'KRW';
+  const c=t.pnl>=0?'var(--pos)':'var(--neg)';
+  const s=t.pnl>=0?'+':'';
+  document.getElementById('modal-title-text').textContent=`${t.ticker}  ·  ${t.exitDate}`;
+  let h=`<div class="trade-detail-block">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:22px;font-weight:800">${t.ticker}</span>
+        <span class="cur-badge ${cur.toLowerCase()}">${cur}</span>
+        <span class="badge ${t.dir}">${t.dir.toUpperCase()}</span>
+        ${t.qtyMode==='size'?'<span class="badge size-badge">SIZE</span>':''}
+      </div>
+      <div class="${t.pnl>=0?'bloom-pos':'bloom-neg'}" style="font-size:22px;font-weight:800">${fmtAbs(t.pnl,cur)}<span style="font-size:14px;margin-left:6px">(${s}${t.pnlRate.toFixed(2)}% ROI)</span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:14px;color:var(--text2);margin-bottom:10px">
+      <span><span style="color:var(--text3)">진입일 </span>${t.entryDate}</span>
+      <span><span style="color:var(--text3)">청산일 </span>${t.exitDate}</span>
+      <span><span style="color:var(--text3)">진입가 </span>${t.entry}</span>
+      <span><span style="color:var(--text3)">청산가 </span>${t.exit}</span>
+      <span><span style="color:var(--text3)">수량 </span>${t.qty} (${t.qtyMode||'qty'})</span>
+      ${(t.fee&&t.fee!==0)?`<span><span style="color:var(--text3)">수수료 </span><span style="color:var(--neg)">−${fmtAbs(t.fee,cur)}</span></span>`:''}
+      ${(t.funding&&t.funding!==0)?`<span><span style="color:var(--text3)">펀딩비 </span><span style="color:${t.funding>0?'var(--pos)':'var(--neg)'}">${t.funding>0?'+':''}${fmtAbs(Math.abs(t.funding),cur)}</span></span>`:''}
+    </div>
+    ${t.signal?`<div class="mlabel">매매 근거</div><div class="mtext">${escHtml(t.signal)}</div>`:''}
+    ${t.screenshot?`<div class="mlabel">스크린샷</div><img class="modal-ss" src="${t.screenshot}" onclick="openImg('${t.screenshot}')" title="크게 보기">`:''}
+    ${t.good?`<div class="mlabel">잘한 점</div><div class="mtext">${escHtml(t.good)}</div>`:''}
+    ${t.bad?`<div class="mlabel">틀린 점</div><div class="mtext">${escHtml(t.bad)}</div>`:''}
+    ${t.next?`<div class="mlabel">다음에</div><div class="mtext">${escHtml(t.next)}</div>`:''}
+  </div>`;
+  document.getElementById('modal-body').innerHTML=h;
+  document.getElementById('modal-bg').classList.add('open');
+}
+
 function showDay(ds){
   const dt=trades.filter(t=>t.exitDate===ds);if(!dt.length)return;
   const krwT=dt.filter(t=>(t.currency||'KRW')==='KRW'),usdT=dt.filter(t=>t.currency==='USD');
@@ -2820,8 +2890,8 @@ function renderList(){
     const cur=t.currency||'KRW',pc=t.pnl>=0?'var(--pos)':'var(--neg)',chk=selectedTrades.has(t.id);
     const feeStr=(t.fee&&t.fee!==0)?fmtAbs(t.fee,cur):'—';
     const fundStr=(t.funding&&t.funding!==0)?(t.funding>0?'+':'')+fmtAbs(Math.abs(t.funding),cur):'—';
-    h+=`<tr class="${chk?'trade-row-sel':''}">
-      <td class="trade-sel-cell" onclick="toggleTradeSelect(${t.id})" title="선택">✓</td>
+    h+=`<tr class="${chk?'trade-row-sel':''} trade-row-clickable" onclick="openTradeDetail(event,${t.id})">
+      <td class="trade-sel-cell" onclick="event.stopPropagation();toggleTradeSelect(${t.id})" title="선택">✓</td>
       <td>${t.entryDate}</td><td>${t.exitDate}</td>
       <td style="font-weight:700">${t.ticker}</td>
       <td><span class="cur-badge ${cur.toLowerCase()}">${cur}</span></td>
@@ -2831,7 +2901,7 @@ function renderList(){
       <td style="color:${(t.funding||0)>=0?'var(--pos)':'var(--neg)'};font-size:13px">${fundStr}</td>
       <td class="${t.pnl>0?'bloom-pos':'bloom-neg'}" style="font-size:15px;font-weight:700">${fmtAbs(t.pnl,cur)}</td>
       <td style="color:${pc}">${t.pnl>=0?'+':''}${t.pnlRate.toFixed(2)}%</td>
-      <td style="display:flex;gap:5px;align-items:center">
+      <td style="display:flex;gap:5px;align-items:center" onclick="event.stopPropagation()">
         <button class="btn-sm" onclick="openEditTrade(${t.id})">수정</button>
         <button class="btn-del" onclick="deleteTrade(${t.id})">삭제</button>
       </td>
@@ -3551,15 +3621,166 @@ function escAttr(s){ return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;
 // ═══════════════════════════════════════════
 let activePeriod='daily';
 // filter state: single value per period
-const filterState = { monthly:'', yearly:'' };
+const filterState = { daily:'', weekly:'', monthly:'', yearly:'' };
 
 function getFilteredTrades(period){
+  if(period==='daily'&&filterState.daily)
+    return trades.filter(t=>t.exitDate===filterState.daily);
+  if(period==='weekly'&&filterState.weekly){
+    // weekly: 해당 주의 월~일 범위
+    const ref=new Date(filterState.weekly);
+    const dow=ref.getDay()||7;
+    ref.setDate(ref.getDate()-dow+1);
+    const mon=ref.toISOString().slice(0,10);
+    const sun=new Date(ref); sun.setDate(sun.getDate()+6);
+    const sunStr=sun.toISOString().slice(0,10);
+    return trades.filter(t=>t.exitDate>=mon&&t.exitDate<=sunStr);
+  }
   if(period==='monthly'&&filterState.monthly)
     return trades.filter(t=>t.exitDate.startsWith(filterState.monthly));
   if(period==='yearly'&&filterState.yearly)
     return trades.filter(t=>t.exitDate.startsWith(filterState.yearly));
   return trades;
 }
+
+// ─── DAILY / WEEKLY / MONTHLY / YEARLY NAV ──────────────
+
+/* ── 포맷 유틸 ── */
+function _todayStr(){ return new Date().toISOString().slice(0,10); }
+function _thisMonthStr(){ const n=new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`; }
+function _thisYearStr(){ return String(new Date().getFullYear()); }
+function _fmtDate(str){ if(!str)return ''; const[,m,d]=str.split('-'); return `${parseInt(m)}/${parseInt(d)}`; }
+function _fmtMonth(str){ if(!str)return ''; const[y,m]=str.split('-'); return `${y}. ${parseInt(m)}월`; }
+function _fmtYear(str){ return str?str+'년':''; }
+
+/* ────────── 일별 ────────── */
+function _initDailyFilter(){
+  if(!filterState.daily) filterState.daily=_todayStr();
+}
+function _updateDailyNav(){
+  const lbl=document.getElementById('daily-nav-label'); if(!lbl)return;
+  lbl.textContent=filterState.daily?_fmtDate(filterState.daily):'오늘';
+  renderChart(); renderList();
+}
+function navDaily(dir){
+  _initDailyFilter();
+  const cur=new Date(filterState.daily);
+  cur.setDate(cur.getDate()+dir);
+  filterState.daily=cur.toISOString().slice(0,10);
+  _updateDailyNav();
+}
+function openDailyPicker(anchorEl){
+  _initDailyFilter();
+  const existing=document.getElementById('daily-date-input-pop');
+  if(existing){existing.remove();return;}
+  const pop=document.createElement('div');
+  pop.id='daily-date-input-pop';
+  pop.style.cssText=`position:fixed;z-index:600;background:var(--surface);border:1px solid var(--border2);border-top:1px solid var(--accent);padding:14px;box-shadow:0 4px 24px rgba(0,0,0,0.85)`;
+  const r=anchorEl.getBoundingClientRect();
+  pop.style.top=(r.bottom+6)+'px'; pop.style.left=r.left+'px';
+  pop.innerHTML=`<div style="font-family:var(--font-m);font-size:11px;letter-spacing:1.5px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">&gt; 날짜 선택</div>
+    <input type="date" id="daily-date-pick" value="${filterState.daily||_todayStr()}"
+      style="background:var(--bg);border:1px solid var(--border2);color:var(--text);font-family:var(--font-m);font-size:14px;padding:7px 10px;border-radius:0;outline:none;width:190px">
+    <div style="display:flex;gap:6px;margin-top:10px">
+      <button class="btn-sm" style="flex:1" onclick="applyDailyDate()">적용</button>
+      <button class="btn-sm" onclick="document.getElementById('daily-date-input-pop').remove()">닫기</button>
+    </div>`;
+  document.body.appendChild(pop);
+  pop.querySelector('#daily-date-pick').focus();
+  setTimeout(()=>document.addEventListener('click',function h(e){if(!pop.contains(e.target)&&e.target!==anchorEl){pop.remove();document.removeEventListener('click',h);}},{once:true}),0);
+}
+function applyDailyDate(){
+  const v=document.getElementById('daily-date-pick')?.value;
+  if(v){filterState.daily=v;_updateDailyNav();}
+  document.getElementById('daily-date-input-pop')?.remove();
+}
+function clearDailyFilter(){filterState.daily=_todayStr();_updateDailyNav();}
+
+/* ────────── 주별 ────────── */
+function _getWeekLabel(dateStr){
+  if(!dateStr)return '이번 주';
+  const ref=new Date(dateStr); const dow=ref.getDay()||7;
+  ref.setDate(ref.getDate()-dow+1);
+  const mon=new Date(ref); const sun=new Date(ref); sun.setDate(sun.getDate()+6);
+  const fmt=d=>`${d.getMonth()+1}/${d.getDate()}`;
+  return `${fmt(mon)} — ${fmt(sun)}`;
+}
+function _initWeeklyFilter(){
+  if(!filterState.weekly) filterState.weekly=_todayStr();
+}
+function _updateWeeklyNav(){
+  const lbl=document.getElementById('weekly-nav-label'); if(!lbl)return;
+  lbl.textContent=_getWeekLabel(filterState.weekly);
+  renderPeriodChart('weekly');
+}
+function navWeekly(dir){
+  _initWeeklyFilter();
+  const cur=new Date(filterState.weekly);
+  cur.setDate(cur.getDate()+dir*7);
+  filterState.weekly=cur.toISOString().slice(0,10);
+  _updateWeeklyNav();
+}
+function openWeeklyPicker(anchorEl){
+  _initWeeklyFilter();
+  const existing=document.getElementById('weekly-date-input-pop');
+  if(existing){existing.remove();return;}
+  const pop=document.createElement('div');
+  pop.id='weekly-date-input-pop';
+  pop.style.cssText=`position:fixed;z-index:600;background:var(--surface);border:1px solid var(--border2);border-top:1px solid var(--accent);padding:14px;box-shadow:0 4px 24px rgba(0,0,0,0.85)`;
+  const r=anchorEl.getBoundingClientRect();
+  pop.style.top=(r.bottom+6)+'px'; pop.style.left=r.left+'px';
+  pop.innerHTML=`<div style="font-family:var(--font-m);font-size:11px;letter-spacing:1.5px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">&gt; 주간의 임의 날짜 선택</div>
+    <input type="date" id="weekly-date-pick" value="${filterState.weekly||_todayStr()}"
+      style="background:var(--bg);border:1px solid var(--border2);color:var(--text);font-family:var(--font-m);font-size:14px;padding:7px 10px;border-radius:0;outline:none;width:190px">
+    <div style="display:flex;gap:6px;margin-top:10px">
+      <button class="btn-sm" style="flex:1" onclick="applyWeeklyDate()">적용</button>
+      <button class="btn-sm" onclick="document.getElementById('weekly-date-input-pop').remove()">닫기</button>
+    </div>`;
+  document.body.appendChild(pop);
+  pop.querySelector('#weekly-date-pick').focus();
+  setTimeout(()=>document.addEventListener('click',function h(e){if(!pop.contains(e.target)&&e.target!==anchorEl){pop.remove();document.removeEventListener('click',h);}},{once:true}),0);
+}
+function applyWeeklyDate(){
+  const v=document.getElementById('weekly-date-pick')?.value;
+  if(v){filterState.weekly=v;_updateWeeklyNav();}
+  document.getElementById('weekly-date-input-pop')?.remove();
+}
+function clearWeeklyFilter(){filterState.weekly=_todayStr();_updateWeeklyNav();}
+
+/* ────────── 월별 ────────── */
+function _initMonthlyFilter(){
+  if(!filterState.monthly) filterState.monthly=_thisMonthStr();
+}
+function _updateMonthlyNav(){
+  const lbl=document.getElementById('monthly-nav-label'); if(!lbl)return;
+  lbl.textContent=filterState.monthly?_fmtMonth(filterState.monthly):'이번 달';
+  renderPeriodChart('monthly');
+}
+function navMonthly(dir){
+  _initMonthlyFilter();
+  const[y,m]=filterState.monthly.split('-').map(Number);
+  let ny=y, nm=m+dir;
+  if(nm>12){nm=1;ny++;} if(nm<1){nm=12;ny--;}
+  filterState.monthly=`${ny}-${String(nm).padStart(2,'0')}`;
+  _updateMonthlyNav();
+}
+function clearMonthlyFilter(){filterState.monthly=_thisMonthStr();_updateMonthlyNav();}
+
+/* ────────── 년도별 ────────── */
+function _initYearlyFilter(){
+  if(!filterState.yearly) filterState.yearly=_thisYearStr();
+}
+function _updateYearlyNav(){
+  const lbl=document.getElementById('yearly-nav-label'); if(!lbl)return;
+  lbl.textContent=filterState.yearly?_fmtYear(filterState.yearly):'올해';
+  renderPeriodChart('yearly');
+}
+function navYearly(dir){
+  _initYearlyFilter();
+  filterState.yearly=String(parseInt(filterState.yearly)+dir);
+  _updateYearlyNav();
+}
+function clearYearlyFilter(){filterState.yearly=_thisYearStr();_updateYearlyNav();}
 
 // ─── PICKER ─────────────────────────────────────────────
 let pickerMode=null;    // 'month'|'year'|'cal'
@@ -3569,14 +3790,17 @@ let pickerYearStart=Math.floor(new Date().getFullYear()/12)*12;
 
 function openPicker(mode, target, anchorEl){
   pickerMode=mode; pickerTarget=target;
+  if(target==='monthly'){ _initMonthlyFilter(); }
+  if(target==='yearly'){ _initYearlyFilter(); }
   if(mode==='month'||mode==='cal'){
     const cur = target==='monthly'?filterState.monthly:(target==='yearly'?null:`${cy}-${String(cm+1).padStart(2,'0')}`);
     pickerYear = cur?parseInt(cur.slice(0,4)):new Date().getFullYear();
   } else {
-    pickerYearStart = filterState.yearly ? Math.floor(parseInt(filterState.yearly)/12)*12 : Math.floor(new Date().getFullYear()/12)*12;
+    const yrVal = filterState.yearly||_thisYearStr();
+    pickerYearStart = Math.floor(parseInt(yrVal)/12)*12;
   }
-  // show clear button only for filter pickers
-  document.getElementById('picker-clear-btn').style.display = (target&&target!=='cal')?'block':'none';
+  // hide clear button — 이제 화살표 네비가 대신하므로 불필요
+  document.getElementById('picker-clear-btn').style.display='none';
 
   const popup=document.getElementById('picker-popup');
   const overlay=document.getElementById('picker-overlay');
@@ -3617,7 +3841,7 @@ function renderPickerGrid(){
   } else {
     const s=pickerYearStart;
     headerEl.textContent=`${s} — ${s+11}`;
-    const active=filterState.yearly;
+    const active=filterState.yearly||_thisYearStr();
     let h='';
     for(let y=s;y<s+12;y++)
       h+=`<button class="picker-item${active===String(y)?' active':''}" onclick="selectPicker('${y}')">${y}</button>`;
@@ -3644,25 +3868,26 @@ function selectPicker(val){
   }
   if(pickerMode==='month'){
     filterState.monthly=val;
-    const[y,m]=val.split('-');
-    document.getElementById('monthly-filter-display').textContent=`${y}년 ${parseInt(m)}월`;
-    closePicker(); renderPeriodChart('monthly');
+    _updateMonthlyNav();
+    closePicker();
   } else {
     filterState.yearly=val;
-    document.getElementById('yearly-filter-display').textContent=val+'년';
-    closePicker(); renderPeriodChart('yearly');
+    _updateYearlyNav();
+    closePicker();
   }
 }
 
 function pickerClear(){
   if(pickerMode==='month'){
     filterState.monthly='';
-    document.getElementById('monthly-filter-display').textContent='전체 기간';
-    closePicker(); renderPeriodChart('monthly');
+    _initMonthlyFilter();
+    _updateMonthlyNav();
+    closePicker();
   } else if(pickerMode==='year'){
     filterState.yearly='';
-    document.getElementById('yearly-filter-display').textContent='전체 기간';
-    closePicker(); renderPeriodChart('yearly');
+    _initYearlyFilter();
+    _updateYearlyNav();
+    closePicker();
   } else closePicker();
 }
 
@@ -3676,6 +3901,11 @@ function setPeriod(p,btn){
   btn.classList.add('active');
   document.querySelectorAll('.period-panel').forEach(el=>el.classList.remove('active'));
   document.getElementById('period-'+p).classList.add('active');
+  // 기본값 초기화
+  if(p==='daily'){ _initDailyFilter(); _updateDailyNav(); }
+  else if(p==='weekly'){ _initWeeklyFilter(); _updateWeeklyNav(); }
+  else if(p==='monthly'){ _initMonthlyFilter(); _updateMonthlyNav(); }
+  else if(p==='yearly'){ _initYearlyFilter(); _updateYearlyNav(); }
   setTimeout(()=>{
     if(p==='daily'){renderChart();renderList();}
     else renderPeriodChart(p);
