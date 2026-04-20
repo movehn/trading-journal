@@ -1982,8 +1982,18 @@ canvas { display: block; width: 100%; }
             <div class="field"><label>청산가</label><input type="number" id="f-exit" placeholder="0" oninput="calcPnl()"></div>
           </div>
           <div class="form-row r2">
-            <div class="field"><label>손익 금액 (자동계산)</label><div class="pnl-box" id="pnl-box">—</div></div>
-            <div class="field"><label>수익률 (자동계산)</label><div class="pnl-box" id="rate-box">—</div></div>
+            <div class="field">
+              <label>수수료</label>
+              <input type="number" id="f-fee" placeholder="0 (지불 금액)" oninput="calcPnl()" step="any">
+            </div>
+            <div class="field">
+              <label>펀딩비</label>
+              <input type="number" id="f-funding" placeholder="0 (수령 +, 지불 −)" oninput="calcPnl()" step="any">
+            </div>
+          </div>
+          <div class="form-row r2">
+            <div class="field"><label>Realized PNL</label><div class="pnl-box" id="pnl-box">—</div></div>
+            <div class="field"><label>ROI</label><div class="pnl-box" id="rate-box">—</div></div>
           </div>
         </div>
         <div class="card">
@@ -2377,14 +2387,25 @@ function calcPnl(){
   const q=parseFloat(document.getElementById('f-qty').value);
   const d=document.getElementById('f-dir').value;
   const cur=document.getElementById('f-currency').value;
+  const fee=parseFloat(document.getElementById('f-fee').value)||0;
+  const funding=parseFloat(document.getElementById('f-funding').value)||0;
   const pb=document.getElementById('pnl-box'), rb=document.getElementById('rate-box');
   if(!e||!x||!q){ pb.textContent=rb.textContent='—'; pb.style.color=rb.style.color='var(--dim)'; return; }
-  let pnl, rate;
-  if(qtyMode==='qty'){ pnl=d==='long'?(x-e)*q:(e-x)*q; rate=d==='long'?(x-e)/e*100:(e-x)/e*100; }
-  else { rate=d==='long'?(x-e)/e*100:(e-x)/e*100; pnl=rate/100*q; }
-  const c=pnl>=0?'var(--pos)':'var(--neg)', s=pnl>=0?'+':'';
-  pb.textContent=fmtAbs(pnl,cur); pb.style.color=c;
-  rb.textContent=s+rate.toFixed(2)+'%'; rb.style.color=c;
+  let grossPnl, costBasis;
+  if(qtyMode==='qty'){
+    grossPnl=d==='long'?(x-e)*q:(e-x)*q;
+    costBasis=e*q;
+  } else {
+    const rate=d==='long'?(x-e)/e*100:(e-x)/e*100;
+    grossPnl=rate/100*q;
+    costBasis=q;
+  }
+  // Realized PNL = 총손익 - 수수료 + 펀딩비(+수령/-지불)
+  const realizedPnl = grossPnl - fee + funding;
+  const roi = costBasis ? (realizedPnl / costBasis * 100) : 0;
+  const c=realizedPnl>=0?'var(--pos)':'var(--neg)', s=realizedPnl>=0?'+':'';
+  pb.textContent=fmtAbs(realizedPnl,cur); pb.style.color=c;
+  rb.textContent=s+roi.toFixed(2)+'%'; rb.style.color=c;
 }
 
 function setQtyMode(m){
@@ -2436,17 +2457,21 @@ function addTrade(){
   const e=parseFloat(document.getElementById('f-entry').value);
   const x=parseFloat(document.getElementById('f-exit').value);
   const q=parseFloat(document.getElementById('f-qty').value);
+  const fee     =parseFloat(document.getElementById('f-fee').value)||0;
+  const funding =parseFloat(document.getElementById('f-funding').value)||0;
   const signal=document.getElementById('f-signal').value.trim();
   const good  =document.getElementById('f-good').value.trim();
   const bad   =document.getElementById('f-bad').value.trim();
   const next  =document.getElementById('f-next').value.trim();
   if(!entryDate||!exitDate||!ticker||isNaN(e)||isNaN(x)||isNaN(q)){ alert('종목, 날짜, 진입가, 청산가, 수량/SIZE는 필수입니다.'); return; }
-  let pnl,pnlRate;
-  if(qtyMode==='qty'){pnl=dir==='long'?(x-e)*q:(e-x)*q;pnlRate=dir==='long'?(x-e)/e*100:(e-x)/e*100;}
-  else{pnlRate=dir==='long'?(x-e)/e*100:(e-x)/e*100;pnl=pnlRate/100*q;}
-  trades.unshift({id:Date.now(),entryDate,exitDate,ticker,dir,currency,entry:e,exit:x,qty:q,qtyMode,pnl,pnlRate,signal,good,bad,next,screenshot:pendingScreenshot||null});
+  let grossPnl, costBasis;
+  if(qtyMode==='qty'){ grossPnl=dir==='long'?(x-e)*q:(e-x)*q; costBasis=e*q; }
+  else { const r=dir==='long'?(x-e)/e*100:(e-x)/e*100; grossPnl=r/100*q; costBasis=q; }
+  const pnl = grossPnl - fee + funding;
+  const pnlRate = costBasis ? pnl/costBasis*100 : 0;
+  trades.unshift({id:Date.now(),entryDate,exitDate,ticker,dir,currency,entry:e,exit:x,qty:q,qtyMode,fee,funding,pnl,pnlRate,signal,good,bad,next,screenshot:pendingScreenshot||null});
   save(); updateAll();
-  ['f-ticker','f-entry','f-exit','f-qty','f-signal','f-good','f-bad','f-next'].forEach(id=>document.getElementById(id).value='');
+  ['f-ticker','f-entry','f-exit','f-qty','f-fee','f-funding','f-signal','f-good','f-bad','f-next'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-entry-date').value=document.getElementById('f-exit-date').value=todayStr;
   document.getElementById('f-dir').value='long';
   document.querySelectorAll('.dir-btn').forEach(b=>b.classList.remove('active'));
@@ -2652,8 +2677,10 @@ function showDay(ds){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px;color:var(--text2);margin-bottom:8px">
         <span>진입일 ${t.entryDate}</span><span>청산일 ${t.exitDate}</span>
         <span>진입가 ${t.entry}</span><span>청산가 ${t.exit}</span>
+        ${(t.fee&&t.fee!==0)?`<span>수수료 <span style="color:var(--neg)">−${fmtAbs(t.fee,cur)}</span></span>`:''}
+        ${(t.funding&&t.funding!==0)?`<span>펀딩비 <span style="color:${t.funding>0?'var(--pos)':'var(--neg)'}">${t.funding>0?'+':''}${fmtAbs(Math.abs(t.funding),cur)}</span></span>`:''}
       </div>
-      <div style="font-family:var(--font-d);font-size:22px;font-weight:800;color:${c}">${fmtAbs(t.pnl,cur)} <span style="font-size:14px">(${s}${t.pnlRate.toFixed(2)}%)</span></div>
+      <div style="font-size:22px;font-weight:800;color:${c}">${fmtAbs(t.pnl,cur)} <span style="font-size:14px">(${s}${t.pnlRate.toFixed(2)}% ROI)</span></div>
       ${t.signal?`<div class="mlabel">매매 근거</div><div class="mtext">${t.signal}</div>`:''}
       ${t.screenshot?`<div class="mlabel">스크린샷</div><img class="modal-ss" src="${t.screenshot}" onclick="openImg('${t.screenshot}')" title="크게 보기">`:''}
       ${t.good?`<div class="mlabel">잘한 점</div><div class="mtext">${t.good}</div>`:''}
@@ -2762,8 +2789,8 @@ function clearSelection(){selectedTrades.clear();updateSelBar();renderList();}
 function exportSelected(){
   const subset=trades.filter(t=>selectedTrades.has(t.id));
   if(!subset.length){alert('선택된 항목이 없습니다.');return;}
-  const hd=['진입일','청산일','종목','방향','진입가','청산가','수량/SIZE','모드','손익','수익률(%)','통화','매매근거','잘한점','틀린점','다음에'];
-  const rows=subset.map(t=>[t.entryDate,t.exitDate,t.ticker,t.dir,t.entry,t.exit,t.qty,t.qtyMode||'qty',t.pnl.toFixed(2),t.pnlRate.toFixed(2),t.currency||'KRW',`"${(t.signal||'').replace(/"/g,'""')}"`,`"${(t.good||'').replace(/"/g,'""')}"`,`"${(t.bad||'').replace(/"/g,'""')}"`,`"${(t.next||'').replace(/"/g,'""')}"`]);
+  const hd=['진입일','청산일','종목','방향','진입가','청산가','수량/SIZE','모드','수수료','펀딩비','Realized PNL','ROI(%)','통화','매매근거','잘한점','틀린점','다음에'];
+  const rows=subset.map(t=>[t.entryDate,t.exitDate,t.ticker,t.dir,t.entry,t.exit,t.qty,t.qtyMode||'qty',(t.fee||0).toFixed(2),(t.funding||0).toFixed(2),t.pnl.toFixed(2),t.pnlRate.toFixed(2),t.currency||'KRW',`"${(t.signal||'').replace(/"/g,'""')}"`,`"${(t.good||'').replace(/"/g,'""')}"`,`"${(t.bad||'').replace(/"/g,'""')}"`,`"${(t.next||'').replace(/"/g,'""')}"`]);
   const csv=[hd.join(','),...rows.map(r=>r.join(','))].join('\n');
   const b=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
   const u=URL.createObjectURL(b);const a=document.createElement('a');
@@ -2787,18 +2814,22 @@ function renderList(){
   let h=`<table class="trade-table"><thead><tr>
     <th class="trade-sel-head" onclick="toggleAllTrades(${JSON.stringify(ids)})" title="전체 선택/해제">${allChk?'✓':'○'}</th>
     <th>진입일</th><th>청산일</th><th>종목</th><th>통화</th><th>방향</th>
-    <th>진입가</th><th>청산가</th><th>손익</th><th>수익률</th><th></th>
+    <th>진입가</th><th>청산가</th><th>수수료</th><th>펀딩비</th><th>Realized PNL</th><th>ROI</th><th></th>
   </tr></thead><tbody>`;
   filtered.forEach(t=>{
     const cur=t.currency||'KRW',pc=t.pnl>=0?'var(--pos)':'var(--neg)',chk=selectedTrades.has(t.id);
+    const feeStr=(t.fee&&t.fee!==0)?fmtAbs(t.fee,cur):'—';
+    const fundStr=(t.funding&&t.funding!==0)?(t.funding>0?'+':'')+fmtAbs(Math.abs(t.funding),cur):'—';
     h+=`<tr class="${chk?'trade-row-sel':''}">
       <td class="trade-sel-cell" onclick="toggleTradeSelect(${t.id})" title="선택">✓</td>
       <td>${t.entryDate}</td><td>${t.exitDate}</td>
-      <td style="font-family:var(--font-d);font-size:15px;font-weight:700">${t.ticker}</td>
+      <td style="font-weight:700">${t.ticker}</td>
       <td><span class="cur-badge ${cur.toLowerCase()}">${cur}</span></td>
       <td><span class="badge ${t.dir}">${t.dir.toUpperCase()}</span></td>
       <td>${t.entry}</td><td>${t.exit}</td>
-      <td class="${t.pnl>0?'bloom-pos':'bloom-neg'}" style="font-family:var(--font-d);font-size:15px;font-weight:700">${fmtAbs(t.pnl,cur)}</td>
+      <td style="color:var(--text3);font-size:13px">${feeStr}</td>
+      <td style="color:${(t.funding||0)>=0?'var(--pos)':'var(--neg)'};font-size:13px">${fundStr}</td>
+      <td class="${t.pnl>0?'bloom-pos':'bloom-neg'}" style="font-size:15px;font-weight:700">${fmtAbs(t.pnl,cur)}</td>
       <td style="color:${pc}">${t.pnl>=0?'+':''}${t.pnlRate.toFixed(2)}%</td>
       <td style="display:flex;gap:5px;align-items:center">
         <button class="btn-sm" onclick="openEditTrade(${t.id})">수정</button>
@@ -2824,12 +2855,14 @@ function openEditTrade(id){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
       <div class="field"><label>종목</label><input id="et-ticker" value="${escAttr(t.ticker)}"></div>
       <div class="field"><label>통화</label><select id="et-cur"><option value="KRW" ${cur==='KRW'?'selected':''}>₩ KRW</option><option value="USD" ${cur==='USD'?'selected':''}>$ USD</option></select></div>
-      <div class="field"><label>방향</label><select id="et-dir"><option value="long" ${t.dir==='long'?'selected':''}>LONG ▲</option><option value="short" ${t.dir==='short'?'selected':''}>SHORT ▼</option></select></div>
+      <div class="field"><label>방향</label><select id="et-dir"><option value="long" ${t.dir==='long'?'selected':''}>LONG</option><option value="short" ${t.dir==='short'?'selected':''}>SHORT</option></select></div>
       <div class="field"><label>수량/SIZE</label><input id="et-qty" type="number" value="${t.qty}"></div>
       <div class="field"><label>진입일</label><input id="et-edate" type="date" value="${t.entryDate}"></div>
       <div class="field"><label>청산일</label><input id="et-xdate" type="date" value="${t.exitDate}"></div>
       <div class="field"><label>진입가</label><input id="et-entry" type="number" value="${t.entry}"></div>
       <div class="field"><label>청산가</label><input id="et-exit" type="number" value="${t.exit}"></div>
+      <div class="field"><label>수수료</label><input id="et-fee" type="number" step="any" value="${t.fee||0}" placeholder="0"></div>
+      <div class="field"><label>펀딩비</label><input id="et-funding" type="number" step="any" value="${t.funding||0}" placeholder="0 (수령 +, 지불 −)"></div>
     </div>
     <div class="field" style="margin-bottom:10px"><label>매매 근거</label><textarea id="et-signal" style="min-height:58px">${escHtml(t.signal||'')}</textarea></div>
     <div class="field" style="margin-bottom:10px"><label>잘한 점</label><textarea id="et-good" style="min-height:48px">${escHtml(t.good||'')}</textarea></div>
@@ -2849,12 +2882,17 @@ function saveEditTrade(id){
   t.exitDate=document.getElementById('et-xdate').value;
   t.entry=parseFloat(document.getElementById('et-entry').value)||t.entry;
   t.exit=parseFloat(document.getElementById('et-exit').value)||t.exit;
+  t.fee=parseFloat(document.getElementById('et-fee').value)||0;
+  t.funding=parseFloat(document.getElementById('et-funding').value)||0;
   t.signal=document.getElementById('et-signal').value.trim();
   t.good=document.getElementById('et-good').value.trim();
   t.bad=document.getElementById('et-bad').value.trim();
   t.next=document.getElementById('et-next').value.trim();
-  if(t.qtyMode==='qty'){t.pnl=t.dir==='long'?(t.exit-t.entry)*t.qty:(t.entry-t.exit)*t.qty;t.pnlRate=t.dir==='long'?(t.exit-t.entry)/t.entry*100:(t.entry-t.exit)/t.entry*100;}
-  else{t.pnlRate=t.dir==='long'?(t.exit-t.entry)/t.entry*100:(t.entry-t.exit)/t.entry*100;t.pnl=t.pnlRate/100*t.qty;}
+  let grossPnl, costBasis;
+  if(t.qtyMode==='qty'){ grossPnl=t.dir==='long'?(t.exit-t.entry)*t.qty:(t.entry-t.exit)*t.qty; costBasis=t.entry*t.qty; }
+  else { const r=t.dir==='long'?(t.exit-t.entry)/t.entry*100:(t.entry-t.exit)/t.entry*100; grossPnl=r/100*t.qty; costBasis=t.qty; }
+  t.pnl = grossPnl - t.fee + t.funding;
+  t.pnlRate = costBasis ? t.pnl/costBasis*100 : 0;
   save();updateAll();closeEditModal();
 }
 function closeEditModal(){document.getElementById('edit-modal-bg').classList.remove('open');}
@@ -2878,8 +2916,8 @@ function calcFx(){
 // ═══════════════════════════════════════════
 function exportCSV(){
   if(!trades.length){alert('기록된 매매가 없습니다.');return;}
-  const hd=['진입일','청산일','종목','방향','진입가','청산가','수량/SIZE','모드','손익','수익률(%)','통화','매매근거','잘한점','틀린점','다음에'];
-  const rows=trades.map(t=>[t.entryDate,t.exitDate,t.ticker,t.dir,t.entry,t.exit,t.qty,t.qtyMode||'qty',t.pnl.toFixed(2),t.pnlRate.toFixed(2),t.currency||'KRW',`"${(t.signal||'').replace(/"/g,'""')}"`,`"${(t.good||'').replace(/"/g,'""')}"`,`"${(t.bad||'').replace(/"/g,'""')}"`,`"${(t.next||'').replace(/"/g,'""')}"`]);
+  const hd=['진입일','청산일','종목','방향','진입가','청산가','수량/SIZE','모드','수수료','펀딩비','Realized PNL','ROI(%)','통화','매매근거','잘한점','틀린점','다음에'];
+  const rows=trades.map(t=>[t.entryDate,t.exitDate,t.ticker,t.dir,t.entry,t.exit,t.qty,t.qtyMode||'qty',(t.fee||0).toFixed(2),(t.funding||0).toFixed(2),t.pnl.toFixed(2),t.pnlRate.toFixed(2),t.currency||'KRW',`"${(t.signal||'').replace(/"/g,'""')}"`,`"${(t.good||'').replace(/"/g,'""')}"`,`"${(t.bad||'').replace(/"/g,'""')}"`,`"${(t.next||'').replace(/"/g,'""')}"`]);
   const csv=[hd.join(','),...rows.map(r=>r.join(','))].join('\n');
   const b=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
   const u=URL.createObjectURL(b);const a=document.createElement('a');
@@ -2907,7 +2945,7 @@ function importCSV(input){
       const entryDate=get('진입일'), exitDate=get('청산일')||get('진입일');
       const ticker=get('종목').toUpperCase();
       if(!entryDate||!ticker){skipped++;return;}
-      const pnl=parseFloat(get('손익'))||0;
+      const pnl=parseFloat(get('Realized PNL')||get('손익'))||0;
       const dup=trades.some(t=>t.entryDate===entryDate&&t.ticker===ticker&&Math.abs(t.pnl-pnl)<0.01);
       if(dup){skipped++;return;}
       trades.push({
@@ -2919,7 +2957,9 @@ function importCSV(input){
         exit:parseFloat(get('청산가'))||0,
         qty:parseFloat(get('수량/SIZE'))||1,
         qtyMode:get('모드')||'qty',
-        pnl, pnlRate:parseFloat(get('수익률(%)'))||0,
+        fee:parseFloat(get('수수료'))||0,
+        funding:parseFloat(get('펀딩비'))||0,
+        pnl, pnlRate:parseFloat(get('ROI(%)')||get('수익률(%)'))||0,
         signal:get('매매근거'), good:get('잘한점'),
         bad:get('틀린점'), next:get('다음에'),
         screenshot:null
