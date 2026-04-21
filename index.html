@@ -1201,6 +1201,44 @@ canvas { display: block; width: 100%; }
   color: var(--accent);
 }
 
+/* ── MEMO ── */
+.memo-display {
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  padding: 12px 14px;
+  min-height: 100px;
+  cursor: text;
+  font-family: var(--font-k), sans-serif;
+  font-size: 17px;
+  color: var(--text2);
+  line-height: 1.75;
+  white-space: pre-wrap;
+  word-break: break-word;
+  transition: border-color 0.12s;
+}
+.memo-display:hover { border-color: var(--border3); }
+.memo-display.empty::after {
+  content: '자유롭게 메모하세요...';
+  color: var(--dim);
+  font-style: italic;
+}
+.memo-editor {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--accent);
+  padding: 12px 14px;
+  min-height: 100px;
+  font-family: var(--font-k), sans-serif;
+  font-size: 17px;
+  color: var(--text2);
+  line-height: 1.75;
+  outline: none;
+  resize: none;
+  border-radius: 0;
+  display: block;
+  overflow: hidden;
+}
+
 /* trade table selector */
 .trade-sel-head {
   width: 32px !important;
@@ -2050,11 +2088,14 @@ canvas { display: block; width: 100%; }
           <div class="field" style="margin-bottom:14px"><label>✗ 틀린 점 / 개선할 점</label><textarea id="f-bad" placeholder="무엇이 잘못됐는가? 어떤 판단이 틀렸나?"></textarea></div>
           <div class="field" style="margin-bottom:20px"><label>→ 다음에 다르게 할 것</label><textarea id="f-next" placeholder="같은 상황이 온다면 어떻게 다르게 행동할 것인가?"></textarea></div>
           <button class="btn-primary" onclick="addTrade()">기록 저장</button>
+          <div style="margin-top:42px;flex:1">
+            <div id="memo-display" class="memo-display" onclick="enterMemoEdit()" title="클릭하여 메모"></div>
+            <textarea id="memo-editor" class="memo-editor" placeholder="자유롭게 메모하세요..." style="display:none" oninput="autoResizeMemo(this)" onblur="saveMemo(this.value)" onkeydown="memoKeyDown(event,this)"></textarea>
+          </div>
         </div>
       </div>
     </div>
   </div>
-
   <!-- ── 캘린더 ── -->
   <div class="tab-panel" id="tab-calendar">
     <div class="cal-stats-row" id="cal-stats-row"></div>
@@ -2314,6 +2355,7 @@ canvas { display: block; width: 100%; }
 // ═══════════════════════════════════════════
 const KEY_TRADES = 'tj_v4_trades';
 const KEY_STUDY  = 'tj_v4_study';
+const KEY_MEMO   = 'tj_v4_memo';
 
 let trades = [];
 let categories = [];   // {id, name, order}
@@ -2382,9 +2424,48 @@ function load(){
     categories = sd.categories||[];
     notes = sd.notes||[];
   } catch { categories=[]; notes=[]; }
+  // 메모 로드
+  const memoTxt = localStorage.getItem(KEY_MEMO)||'';
+  const disp = document.getElementById('memo-display');
+  if(disp){ disp.textContent=memoTxt; disp.classList.toggle('empty',!memoTxt); }
 }
 function save(){ localStorage.setItem(KEY_TRADES, JSON.stringify(trades)); }
 function saveStudy(){ localStorage.setItem(KEY_STUDY, JSON.stringify({categories, notes})); }
+
+// ═══════════════════════════════════════════
+//  MEMO
+// ═══════════════════════════════════════════
+function enterMemoEdit(){
+  const disp=document.getElementById('memo-display');
+  const ed=document.getElementById('memo-editor');
+  if(!disp||!ed)return;
+  ed.value=localStorage.getItem(KEY_MEMO)||'';
+  disp.style.display='none';
+  ed.style.display='block';
+  autoResizeMemo(ed);
+  ed.focus();
+  // 커서 끝으로
+  ed.selectionStart=ed.selectionEnd=ed.value.length;
+}
+function saveMemo(val){
+  const disp=document.getElementById('memo-display');
+  const ed=document.getElementById('memo-editor');
+  if(!disp||!ed)return;
+  localStorage.setItem(KEY_MEMO,val);
+  disp.textContent=val;
+  disp.classList.toggle('empty',!val.trim());
+  ed.style.display='none';
+  disp.style.display='block';
+}
+function memoKeyDown(e,ta){
+  // Shift+Enter = 줄바꿈, 단순 Enter = 저장
+  if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); saveMemo(ta.value); }
+  if(e.key==='Escape'){ saveMemo(ta.value); }
+}
+function autoResizeMemo(ta){
+  ta.style.height='auto';
+  ta.style.height=Math.max(100, ta.scrollHeight)+'px';
+}
 
 // ═══════════════════════════════════════════
 //  INIT
