@@ -2482,13 +2482,13 @@ function uid(){ return Date.now()+Math.random().toString(36).slice(2,7); }
 
 function fmtAbs(pnl, cur){
   const sym=currSymbol(cur), n=Math.abs(pnl), s=pnl>=0?'+':'-';
-  if(cur==='KRW' && n>=1e4) return s+sym+Math.round(n).toLocaleString();
+  if(cur==='KRW') return s+Math.round(n).toLocaleString()+'₩';
   if(n>=1e6) return s+sym+(n/1e6).toFixed(2)+'M';
   if(n>=1e3) return s+sym+(n/1e3).toFixed(2)+'K';
   return s+sym+n.toFixed(2);
 }
 function fmtN(n, cur){
-  if(cur==='KRW' && Math.abs(n)>=1e4) return (n>=0?'+':'')+currSymbol(cur)+Math.round(Math.abs(n)).toLocaleString();
+  if(cur==='KRW') return (n>=0?'+':'-')+Math.round(Math.abs(n)).toLocaleString()+'₩';
   const a=Math.abs(n);
   if(a>=1e6) return (n>=0?'+':'-')+currSymbol(cur)+(a/1e6).toFixed(2)+'M';
   if(a>=1e3) return (n>=0?'+':'-')+currSymbol(cur)+(a/1e3).toFixed(2)+'K';
@@ -2681,7 +2681,7 @@ function renderCalendar(){
     const anyNeg=(kp!=null&&kp<0)||(up!=null&&up<0);
     let cls='cal-day'+(ds===today?' today':'')+(anyPos?' has-pos':'')+(anyNeg&&!anyPos?' has-neg':'');
     let inner='';
-    if(kp!=null){const s=kp>=0?'+':'';inner+=`<div class="cal-day-pnl ${kp>=0?'bloom-pos':'bloom-neg'}">₩${s}${Math.abs(kp)>=1e4?Math.round(Math.abs(kp)).toLocaleString():Math.abs(kp).toFixed(0)}</div>`;}
+    if(kp!=null){const s=kp>=0?'+':'';inner+=`<div class="cal-day-pnl ${kp>=0?'bloom-pos':'bloom-neg'}">${s}${Math.round(Math.abs(kp)).toLocaleString()}₩</div>`;}
     if(up!=null){const s=up>=0?'+':'';inner+=`<div class="cal-day-pnl ${up>=0?'bloom-pos':'bloom-neg'}">$${s}${Math.abs(up).toFixed(2)}</div>`;}
     if(dc>0)inner+=`<div class="cal-day-cnt">${dc}건</div>`;
     html+=`<div class="${cls}" onclick="showDay('${ds}')"><div class="cal-num">${d}</div>${inner}</div>`;
@@ -2742,7 +2742,7 @@ function renderWeekCalendar(){
     const anyNeg=(kp!=null&&kp<0)||(up!=null&&up<0);
     let cls='cal-day cal-day-week'+(ds===today?' today':'')+(anyPos?' has-pos':'')+(anyNeg&&!anyPos?' has-neg':'');
     let inner='';
-    if(kp!=null){const s=kp>=0?'+':'';inner+=`<div class="cal-day-pnl ${kp>=0?'bloom-pos':'bloom-neg'}" style="font-size:clamp(22px,2.6vw,38px)">₩${s}${Math.abs(kp)>=1e4?Math.round(Math.abs(kp)).toLocaleString():Math.abs(kp).toFixed(0)}</div>`;}
+    if(kp!=null){const s=kp>=0?'+':'';inner+=`<div class="cal-day-pnl ${kp>=0?'bloom-pos':'bloom-neg'}" style="font-size:clamp(22px,2.6vw,38px)">${s}${Math.round(Math.abs(kp)).toLocaleString()}₩</div>`;}
     if(up!=null){const s=up>=0?'+':'';inner+=`<div class="cal-day-pnl ${up>=0?'bloom-pos':'bloom-neg'}" style="font-size:clamp(22px,2.6vw,38px)">$${s}${Math.abs(up).toFixed(2)}</div>`;}
     if(dc>0)inner+=`<div class="cal-day-cnt">${dc}건</div>`;
     html+=`<div class="${cls}" onclick="showDay('${ds}')"><div class="cal-num" style="font-size:13px;font-weight:700;color:${ds===today?'var(--orange)':'var(--dim)'}">${cur.getMonth()+1}/${cur.getDate()}</div>${inner||'<div style="flex:1"></div>'}</div>`;
